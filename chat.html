@@ -1,0 +1,135 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+    <style>
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+          }
+        body {
+          font: 13px Helvetica, Arial;
+          }
+        #panel {
+          list-style-type: none;
+          margin: 2px;
+          padding: 0;
+          width: 9%;
+          float: right;
+          }
+        form#inp {
+          background: #000;
+          padding: 3px;
+          position: fixed;
+          bottom: 0;
+          width: 85%;
+          }
+        #me {
+          padding: 5px 10px;
+          float: right;
+          text-align: right;
+          }
+        form input {
+          border: 0;
+          padding: 10px;
+          width: 80%;
+          margin-right: .5%;
+          }
+        form button {
+          width: 19%;
+          background: rgb(130, 224, 255);
+          border: none;
+          padding: 10px;
+          }
+        #messages {
+          list-style-type: none;
+          margin: 0;
+          padding: 0;
+          width: 85%
+          }
+        #messages li {
+          padding: 5px 10px;
+          }
+        #messages li:nth-child(odd) {
+          background: #eee;
+          }
+    </style>
+  </head>
+
+  <body>
+    <div id="panel">
+      <div id="me"></div>
+      <form id="usr" action="">
+      </form>
+    </div>
+    <form id="inp" action="">
+      <input id="m" autocomplete="off" /><button>Send</button>
+    </form>
+    <ul id="messages"></ul>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+    <script>
+      var socket = io();
+      var nickname = "";
+      var message = {senderName: nickname, newMessage: "", to: []};
+      var addNewUser = function(user){
+        $('#usr').append($('<input type="checkbox" class="sendTo" value="' + user + '"/>')).append($('<label>').text(user));
+      };
+
+      socket.on('connect', function(data) {
+        socket.emit('init', "");
+        socket.on('users connected', function(list){
+          for(var i = 0; i < list.length; i++){
+              addNewUser(list[i]);
+          }
+          nickname = prompt("What is your name?");
+          var isUniq = false;
+          while (!isUniq) {
+            checkName();
+          }
+          function checkName() {
+            for(var i = 0; i < list.length; i++){
+              if(list[i] == nickname || !nickname){
+                nickname = prompt("Please select another name!");
+                return false;
+              }
+            }
+            isUniq = true;
+            return false;
+          }
+          message.senderName = nickname;
+          message.to.push(nickname);
+          $('#me').text("Your name is: " + nickname);
+          socket.emit('join', nickname);
+        });
+      });
+
+      $('form#inp').submit(function(){
+        message.newMessage = $('#m').val();
+        //message.to = $('#sendTo'.val());
+        socket.emit('chat message', message);
+        $('#m').val('');
+        return false;
+      });
+
+      socket.on('chat message', function(msg){
+        $('#messages').append($('<li>').text(msg));
+      });
+
+      socket.on('join data', function(msg){
+        if(msg != nickname){
+          addNewUser(msg);
+        }
+      });
+
+      $(document).on('click', '.sendTo', function(){
+        console.log("triggered");
+        if($(this).is(':checked')) {
+          message.to.push($(this).val());
+          console.log("checked: " + $(this).val());
+          };
+      });
+    </script>
+  </body>
+</html>
