@@ -9,18 +9,26 @@ var getNames = function(arr){
   return result;
 };
 
-var sendMessage = function(usersArr, msg, newcomer){
+var sendMessage = function(msgObj, toArr){
+  var msg = {senderName: msgObj.senderName, newMessage: msgObj.newMessage}
+  if(toArr){
+    for(var i = 0; i < toArr.length; i++){
+      io.to(toArr[i].socketId).emit('chat message', msg);
+    }
+  }else{
+    io.emit('chat message', msg);
+  }
+}
+
+var messageManager = function(msg, usersArr, newcomer){
   if(msg.to.length > 1){
     var recieversArr = usersArr.filter(function(el){return msg.to.indexOf(el.name) != -1;});
-    for(var i = 0; i < recieversArr.length; i++){
-      io.to(recieversArr[i].socketId).emit('chat message', msg.senderName + ": " + msg.newMessage);
-    }
-  }else if (newcomer){
-    io.to(usersArr[0].socketId).emit('chat message', msg.senderName + ": " + msg.newMessage);
+    sendMessage(msg, recieversArr);
+  }else if (msg.to.lengt = 1 && newcomer){
+    sendMessage(msg, usersArr);
   }else{
-    io.emit('chat message', msg.senderName + ": " + msg.newMessage);
+    sendMessage(msg);
   }
-
 }
 
 app.get('/', function(req, res){
@@ -37,16 +45,15 @@ io.on('connection', function(socket){
     users.push(newUser);
     io.emit('join data', name);
     for(var i = 0; i < messages.length; i++){
-      sendMessage([newUser], messages[i], true);
+      messageManager(messages[i], [newUser], true);
     }
-    io.emit('chat message', name +  " is connected!");
+    messageManager({senderName: name, newMessage: name + " is connected!", to: []});
     console.log("Connected: " + name);
   });
 
   socket.on('chat message', function(msg){
-    sendMessage(users, msg);
+    messageManager(msg, users);
     messages.push(msg);
-    console.log(messages);
   });
 
 });

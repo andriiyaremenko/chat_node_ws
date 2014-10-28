@@ -84,19 +84,8 @@
               addNewUser(list[i]);
           }
           nickname = prompt("What is your name?");
-          var isUniq = false;
-          while (!isUniq) {
-            checkName();
-          }
-          function checkName() {
-            for(var i = 0; i < list.length; i++){
-              if(list[i] == nickname || !nickname){
-                nickname = prompt("Please select another name!");
-                return false;
-              }
-            }
-            isUniq = true;
-            return false;
+          while (list.indexOf(nickname) != -1) {
+            nickname = prompt("Please select another name!");
           }
           message.senderName = nickname;
           message.to.push(nickname);
@@ -107,14 +96,13 @@
 
       $('form#inp').submit(function(){
         message.newMessage = $('#m').val();
-        //message.to = $('#sendTo'.val());
         socket.emit('chat message', message);
         $('#m').val('');
         return false;
       });
 
       socket.on('chat message', function(msg){
-        $('#messages').append($('<li>').text(msg));
+        $('#messages').append($('<li>').text(msg.senderName + ": " + msg.newMessage));
       });
 
       socket.on('join data', function(msg){
@@ -124,11 +112,9 @@
       });
 
       $(document).on('click', '.sendTo', function(){
-        console.log("triggered");
         if($(this).is(':checked')) {
           message.to.push($(this).val());
-          console.log("checked: " + $(this).val());
-          };
+        };
       });
     </script>
   </body>
